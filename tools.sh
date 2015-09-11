@@ -132,8 +132,7 @@ parse_args() {
     QUOTED_OPTS="$QUOTED_OPTS \"$o\""
   done
 
-  # quotes whitespace 
-  eval set -- "$QUOTED_OPTS" # this isn't working properly in OSX. it can't quote whitespace string
+  eval set -- "$QUOTED_OPTS" 
 
   while true; do
     #echo $1
