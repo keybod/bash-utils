@@ -1,9 +1,9 @@
 # Bash utilities
 
 ## tools.sh
-tools.sh is required expect script. 
+remote-tools.sh is required expect script. 
 
-tools.sh provides following commands
+remote-tools.sh provides following commands
 * adduser
   * Add user and set password to the remote hots. Root privilege is needed. 
 * copy-key
