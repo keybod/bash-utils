@@ -1,6 +1,6 @@
 # Bash utilities
 
-## tools.sh
+## remote-tools.sh
 remote-tools.sh is required expect script. 
 
 remote-tools.sh provides following commands
