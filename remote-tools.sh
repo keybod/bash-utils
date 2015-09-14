@@ -156,6 +156,7 @@ parse_args() {
     ("--") shift; break ;;
     esac
   done
+  REMAINDER_ARGS="$@"
 
 }
 
@@ -179,10 +180,17 @@ if [ $COMMAND = "adduser" ]; then
     exit 1
   fi
 
-  for host in $(cat $SERVER_OPTION); do
-    ssh $host adduser $USERNAME_OPTION
-    ssh $host "echo $USERNAME_OPTION:$PASSWORD_OPTION | chpasswd"
-  done
+  set -- $REMAINDER_ARGS
+
+  if [ -f $SERVER_OPTION ]; then
+    for host in $(cat $SERVER_OPTION); do
+      ssh $host adduser $USERNAME_OPTION
+      ssh $host "echo $USERNAME_OPTION:$PASSWORD_OPTION | chpasswd"
+    done
+  else
+    ssh $SERVER_OPTION adduser $USERNAME_OPTION
+    ssh $SERVER_OPTION "echo $USERNAME_OPTION:$PASSWORD_OPTION | chpasswd"
+  fi
 
 elif [ $COMMAND = "copy-key" ]; then
 
@@ -205,6 +213,8 @@ elif [ $COMMAND = "copy-key" ]; then
     exit 1
   fi
 
+  set -- $REMAINDER_ARGS
+
   if [ ! -e ~/.ssh ] || [ ! -e ~/.ssh/id_rsa.pub ]; then
     echo "public ssh key is not exists."
     echo "Try to generate ssh key"
@@ -226,8 +236,9 @@ elif [ $COMMAND = "copy-key" ]; then
 EOF
   fi
   
-  for host in $(cat $SERVER_OPTION); do
-    $EXPECT_BIN<<EOF
+  if [ -f $SERVER_OPTION ]; then
+    for host in $(cat $SERVER_OPTION); do
+      $EXPECT_BIN<<EOF
 spawn ssh-copy-id -i $HOME/.ssh/id_rsa.pub $USERNAME_OPTION@$host
 expect {
   "*?assword:*" {
@@ -244,7 +255,26 @@ expect {
   }
 }
 EOF
-   done 
+    done 
+  else
+    $EXPECT_BIN<<EOF
+spawn ssh-copy-id -i $HOME/.ssh/id_rsa.pub $USERNAME_OPTION@$SERVER_OPTION
+expect {
+  "*?assword:*" {
+    send "$PASSWORD_OPTION\r"
+  }
+  "yes/no" {
+    send "yes\r"
+    exp_continue
+  }
+}
+expect {
+  "*?~]*" {
+    exit
+  }
+}
+EOF
+  fi
  
 elif [ $COMMAND = "copy" ]; then
 
@@ -266,9 +296,15 @@ elif [ $COMMAND = "copy" ]; then
     exit 1
   fi
 
-  for host in $(cat $SERVER_OPTION); do
-    scp $1 $USERNAME_OPTION@$host:$2
-  done
+  set -- $REMAINDER_ARGS
+
+  if [ -f $SERVER_OPTION ]; then
+    for host in $(cat $SERVER_OPTION); do
+      scp $1 $USERNAME_OPTION@$host:$2
+    done
+  else
+      scp $1 $USERNAME_OPTION@$SERVER_OPTION:$2
+  fi
 
 elif [ $COMMAND = "run" ]; then
 
@@ -290,9 +326,15 @@ elif [ $COMMAND = "run" ]; then
     exit 1
   fi
 
-  for host in $(cat $SERVER_OPTION); do
-    ssh $USERNAME_OPTION@$host "$@"
-  done
+  set -- $REMAINDER_ARGS
+
+  if [ -f $SERVER_OPTION ]; then
+    for host in $(cat $SERVER_OPTION); do
+      ssh $USERNAME_OPTION@$host "$REMAINDER_ARGS"
+    done
+  else
+    ssh $USERNAME_OPTION@$SERVER_OPTION "$REMAINDER_ARGS"
+  fi
 else
   print_help
 fi
